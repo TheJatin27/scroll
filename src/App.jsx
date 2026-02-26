@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import "./App.css";
@@ -8,72 +8,73 @@ gsap.registerPlugin(ScrollTrigger);
 function App() {
   const heroRef = useRef(null);
   const carRef = useRef(null);
-  const headlineRef = useRef(null);
   const statsRef = useRef([]);
 
   useEffect(() => {
-    const tl = gsap.timeline();
+    let ctx = gsap.context(() => {
+      // 1. INITIAL LOAD: Staggered entrance for Headline & Cards
+      const introTl = gsap.timeline();
+      
+      introTl.from(".headline span", {
+        y: 80,
+        opacity: 0,
+        stagger: 0.04,
+        duration: 1.2,
+        ease: "power4.out",
+      });
 
-    // 1. Initial Intro Animation
-    tl.from(".headline span", {
-      y: 150,
-      skewY: 10,
-      opacity: 0,
-      stagger: 0.03,
-      duration: 1.2,
-      ease: "power4.out",
-    })
-    .from(statsRef.current, {
-      y: 50,
-      opacity: 0,
-      stagger: 0.1,
-      duration: 0.8,
-      ease: "back.out(1.7)",
-    }, "-=0.8");
+      // 2. SCROLL ANIMATION: Car Movement + Card Reveal
+      // This timeline is tied to the scroll progress of the .hero section
+      const scrollTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: heroRef.current,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 1.2, // Smooth interpolation
+        }
+      });
 
-    // 2. Scroll Animation: Car Driving + Headline Parallax
-    gsap.to(carRef.current, {
-      x: "120vw", // Drive all the way across
-      rotation: 2, // Slight tilt like it's speeding
-      scrollTrigger: {
-        trigger: heroRef.current,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 1.5,
-      },
-    });
+      // Move car from far left to far right
+      scrollTl.to(carRef.current, {
+        x: "calc(100vw + 600px)",
+        ease: "none"
+      }, 0);
 
-    // Suble parallax for text
-    gsap.to(headlineRef.current, {
-      y: -100,
-      opacity: 0.1,
-      scrollTrigger: {
-        trigger: heroRef.current,
-        start: "top top",
-        end: "50% top",
-        scrub: true,
-      }
-    });
+      // Stagger cards to appear one by one as the car "passes" them
+      scrollTl.to(statsRef.current, {
+        opacity: 1,
+        y: 0,
+        stagger: 0.1,
+        duration: 0.4,
+        ease: "power2.out"
+      }, 0.1); 
 
+    }, heroRef);
+
+    return () => ctx.revert(); // Cleanup on unmount
   }, []);
 
+  const metrics = [
+    { val: "98%", label: "Accuracy" },
+    { val: "24/7", label: "Availability" },
+    { val: "10x", label: "Performance" },
+    { val: "0.2s", label: "Latency" }
+  ];
+
   return (
-    <section className="hero" ref={heroRef}>
+    <main className="hero" ref={heroRef}>
       <div className="sticky">
         
-        <h1 className="headline" ref={headlineRef}>
-          {"ITZFIZZ".split("").map((char, index) => (
-            <span key={index}>{char === " " ? "\u00A0" : char}</span>
+        {/* Headline */}
+        <h1 className="headline">
+          {"WELCOME ITZFIZZ".split("").map((char, i) => (
+            <span key={i}>{char === " " ? "\u00A0" : char}</span>
           ))}
         </h1>
 
+        {/* Stats Section - Full Width */}
         <div className="stats">
-          {[
-            { val: "58%", label: "Velocity" },
-            { val: "27%", label: "Torque" },
-            { val: "23%", label: "Aero" },
-            { val: "40%", label: "Impact" }
-          ].map((item, i) => (
+          {metrics.map((item, i) => (
             <div
               key={i}
               className="card"
@@ -85,16 +86,18 @@ function App() {
           ))}
         </div>
 
+        {/* Road and Driving Element */}
         <div className="road">
           <img
             ref={carRef}
-            src="../src/assets/car.png" // Using a high-quality placeholder
-            alt="car"
+            src="https://pngimg.com/d/porsche_PNG10620.png" 
+            alt="racing car"
             className="car"
           />
         </div>
+
       </div>
-    </section>
+    </main>
   );
 }
 
